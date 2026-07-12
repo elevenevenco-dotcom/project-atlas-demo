@@ -1,100 +1,115 @@
-# Project Atlas — Demo Build
+# Project Atlas
 
-A fully self-contained version of Project Atlas with **no backend, no
-database, no API keys, and no environment variables**. Everything runs in
-the visitor's browser and deploys to Vercel (or any static host) with a
-single click.
+Point at a spot on an image, describe the change, and get back an AI-edited
+version — built with Next.js (App Router), React, Tailwind CSS, Supabase,
+and Stripe, deployed on Vercel.
 
-## What changed from the full version
+## Stack
 
-| Full version | This demo build |
-|---|---|
-| Supabase Auth | Local "session" in `localStorage` — any email logs you in, no password check |
-| Supabase Storage + Postgres | Images stored in the browser's own **IndexedDB** |
-| Stripe subscriptions | "Upgrade to Pro" just flips a `plan` flag in `localStorage` — no card, no charge |
-| OpenAI `images/edits` API call | An in-browser `<canvas>` routine (`lib/fake-ai-edit.ts`) picks a stylized effect from keywords in your instruction and composites it at the marker point |
-| `middleware.ts` session refresh | `components/AuthGuard.tsx` checks `localStorage` client-side and redirects if missing |
-| Dynamic route `/editor/[id]` | Static route `/editor?id=...`, since image IDs are generated at runtime in the browser and can't be pre-rendered by a static export |
-| Next.js server rendering | `next.config.js` sets `output: "export"` — the whole app builds to static HTML/JS/CSS, no server functions at all |
+- **Next.js 14 (App Router)** + React + TypeScript
+- **Tailwind CSS** for styling
+- **Supabase**: Postgres database, Auth, and Storage (image files)
+- **Stripe**: subscription billing (Free / Pro plans)
+- **AI image editing**: OpenAI `gpt-image-1` `images/edits` by default —
+  swap out `runImageEdit()` in `app/api/edit-image/route.ts` for Replicate
+  (FLUX.1 Kontext), Google Gemini image editing, or any other provider.
 
-The click-to-place-marker interaction, the instruction panel, and the
-overall UI are unchanged from the full version.
+## How the core flow works
 
-## Why this deploys with zero configuration
+1. User uploads an image → stored in the Supabase Storage bucket
+   `atlas-images`, with a row in the `images` table.
+2. The editor renders the image inside `components/Canvas.tsx`. Clicking the
+   image records a **normalized (0–1) x/y position**, independent of the
+   image's displayed size.
+3. The user types an instruction in `components/InstructionPanel.tsx` and
+   submits.
+4. `POST /api/edit-image` downloads the source image from Storage, checks
+   the user's remaining credits, and calls the AI provider with the image
+   plus a prompt that grounds the instruction at the clicked location.
+5. The edited image is uploaded back to Storage, an `edits` row is recorded,
+   and the URL is returned to the client for display and download.
 
-- `next build` produces a static `out/` directory — there's nothing for
-  Vercel to run at request time, so there's nothing to configure.
-- No `.env` file is read anywhere in the code. Search the repo — there are
-  no `process.env` references left.
-- No external network calls are made by the app itself (fonts are loaded
-  from Google Fonts via CSS `@import`, same as the full version, but the
-  UI works fine if that's blocked too).
+## Local setup
 
-## Local development
+### 1. Install dependencies
 
 ```bash
 npm install
+```
+
+### 2. Create a Supabase project
+
+1. Create a project at [supabase.com](https://supabase.com).
+2. In the SQL editor, run `supabase/schema.sql` — this creates the
+   `profiles`, `images`, and `edits` tables, row-level security policies,
+   and a trigger that auto-creates a profile on signup.
+3. Under **Storage**, create a bucket named `atlas-images` and mark it
+   **public** (or keep it private and switch `getPublicUrl` calls to signed
+   URLs if you need stricter access control).
+4. Under **Authentication → URL Configuration**, add
+   `http://localhost:3000/auth/callback` (and your production URL) as a
+   redirect URL.
+
+### 3. Create a Stripe product
+
+1. Create a recurring monthly price for the Pro plan in the Stripe
+   dashboard, and copy its price ID into `STRIPE_PRICE_ID_PRO`.
+2. Create a webhook endpoint pointing at `/api/stripe/webhook` listening for
+   `checkout.session.completed`, `customer.subscription.updated`,
+   `customer.subscription.deleted`, and `invoice.paid`. Copy the signing
+   secret into `STRIPE_WEBHOOK_SECRET`.
+3. For local testing, use the Stripe CLI:
+   ```bash
+   stripe listen --forward-to localhost:3000/api/stripe/webhook
+   ```
+
+### 4. Configure environment variables
+
+Copy `.env.example` to `.env.local` and fill in your Supabase, Stripe, and
+OpenAI keys.
+
+### 5. Run the dev server
+
+```bash
 npm run dev
 ```
 
-Open `http://localhost:3000`. Click "Skip login, try instant demo" on the
-login page to get straight into the editor with no typing.
-
 ## Deploying to Vercel
 
-1. Push this folder to a GitHub repo.
-2. Import it in Vercel. No environment variables need to be added.
-3. Vercel will detect the Next.js static export automatically. Alternatively,
-   run `npm run build` locally and drag the generated `out/` folder into
-   Vercel, Netlify, GitHub Pages, or any static file host.
-
-## Limitations of a browser-only demo
-
-- **Storage is per-browser, per-device.** Clearing site data (or opening
-  the app in a different browser) starts fresh. There's a "reset demo data"
-  button in the navbar for this.
-- **No real accounts.** Anyone can "log in" as any email with no password —
-  this is intentional for a zero-backend demo, not a security bug to fix.
-- **The AI edit is simulated.** `runFakeEdit()` in `lib/fake-ai-edit.ts`
-  recognizes a handful of keywords (leather, wood, remove, logo, colors)
-  and draws a corresponding effect at the marker with a `<canvas>` — it
-  does not call any model. A "Simulated edit — demo mode" badge is stamped
-  on every result so this is never ambiguous to the person using it.
-- **Storage quota.** IndexedDB typically allows tens of MB to unlimited
-  space depending on the browser, comfortably more than localStorage — but
-  very large or many images can still hit browser-specific limits.
-
-## Reconnecting real services later
-
-Each stand-in is isolated in its own file so it's a contained swap if you
-want to reintroduce a backend:
-
-- `lib/local-auth.ts` → replace with real auth (Supabase, Clerk, NextAuth, etc.)
-- `lib/local-store.ts` → replace with real object storage + a database
-- `lib/fake-ai-edit.ts` → replace `runFakeEdit()` with a call to a real
-  image-editing model, either directly from the client or via a server
-  route if you reintroduce a backend
-- `lib/demo-data.ts` is demo-only and can be deleted once real uploads are
-  the norm
+1. Push this repo to GitHub and import it into Vercel.
+2. Add all variables from `.env.example` under **Project Settings →
+   Environment Variables**.
+3. Set `NEXT_PUBLIC_SITE_URL` to your production domain.
+4. Point your Stripe webhook and Supabase redirect URL at the production
+   domain as well.
 
 ## Project structure
 
 ```
 app/
   page.tsx                  Landing page
-  (auth)/login, /signup     Local demo "auth" pages
-  dashboard/                Image library (IndexedDB) + upload
-  editor/                   Marker + instruction editor (?id=... route)
-  pricing/                  Plan comparison + local fake upgrade
+  (auth)/login, /signup     Auth pages
+  dashboard/                Image library + upload
+  editor/[id]/              Marker + instruction editor
+  pricing/                  Plan comparison + Stripe checkout
+  api/edit-image/           Calls the AI image editing model
+  api/stripe/               Checkout, billing portal, webhook
 components/
-  AuthGuard.tsx             Client-side route protection
   Canvas.tsx                Click-to-place-marker image canvas
   InstructionPanel.tsx      Instruction input + examples
-  UploadZone.tsx             Drag-and-drop upload + generated sample images
-  Navbar.tsx                 Shared app header
+  UploadZone.tsx            Drag-and-drop image upload
+  Navbar.tsx                Shared app header
 lib/
-  local-auth.ts             localStorage-based fake session
-  local-store.ts            IndexedDB wrapper for image persistence
-  fake-ai-edit.ts           Canvas-based simulated "AI" edit
-  demo-data.ts               Procedurally generated sample images
+  supabase/                 Browser, server, and admin Supabase clients
+  stripe.ts                 Server-side Stripe client
+supabase/schema.sql         Database schema + RLS policies
 ```
+
+## Notes on the AI editing call
+
+The default implementation sends the full source image plus a text prompt
+that describes the click location as a percentage from the top-left corner.
+This works well with models that reason over image + text jointly. For
+strict pixel-level masking (edit only inside a fixed radius of the marker),
+generate a soft-edged circular mask centered at `(markerX, markerY)` server
+side and pass it via the `mask` parameter on the edit request instead.

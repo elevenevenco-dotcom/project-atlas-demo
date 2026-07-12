@@ -15,8 +15,16 @@ module.exports = {
           600: "#33353f",
           500: "#4a4d5a",
         },
-        mist: { 100: "#f5f5f7", 200: "#e4e4e9", 400: "#9a9ba6" },
-        signal: { DEFAULT: "#6e5bff", soft: "#8a7bff", dim: "#4a3ecf" },
+        mist: {
+          100: "#f5f5f7",
+          200: "#e4e4e9",
+          400: "#9a9ba6",
+        },
+        signal: {
+          DEFAULT: "#6e5bff",
+          soft: "#8a7bff",
+          dim: "#4a3ecf",
+        },
         coral: "#ff6b5b",
       },
       fontFamily: {
@@ -34,7 +42,9 @@ module.exports = {
           "50%": { transform: "scale(1.4)", opacity: "0.6" },
         },
       },
-      animation: { pulseMarker: "pulseMarker 1.6s ease-in-out infinite" },
+      animation: {
+        pulseMarker: "pulseMarker 1.6s ease-in-out infinite",
+      },
     },
   },
   plugins: [],
