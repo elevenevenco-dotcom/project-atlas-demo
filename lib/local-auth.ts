@@ -1,9 +1,8 @@
 "use client";
 
-// Stands in for Supabase Auth + billing. There is no server, no password
-// checking, and no real payments — this is a self-contained demo session
-// stored in the browser's localStorage. "Signing up" or "logging in" with
-// any email just creates/loads a local profile on this device.
+// A self-contained demo session and billing state stored in the browser's
+// localStorage. There is no server, no password checking, and no real
+// payments involved anywhere in this file.
 
 export type LocalUser = {
   id: string;

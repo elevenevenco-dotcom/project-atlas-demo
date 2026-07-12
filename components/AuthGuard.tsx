@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { getSession, LocalUser } from "@/lib/local-auth";
 import { Loader2 } from "lucide-react";
 
-// Replaces the old Next.js middleware + Supabase session check. Since this
-// build has no server, route protection happens client-side by reading the
-// local demo session and redirecting if it's missing.
+// This build has no server and no middleware. Route protection happens
+// entirely client-side by reading the local demo session and redirecting
+// if it's missing.
 export default function AuthGuard({
   children,
 }: {

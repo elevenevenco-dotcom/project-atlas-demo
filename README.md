@@ -2,30 +2,30 @@
 
 A fully self-contained, browser-only version of Project Atlas.
 
-**This project requires zero environment variables, zero API keys, and zero
-external accounts.** There is no database, no auth provider, no payment
-processor, and no AI API call anywhere in this codebase. Everything — image
-storage, the "AI" edit, the user session, and the "Pro" plan — runs
-entirely on the visitor's device.
+**This project has no external dependencies of any kind.** No database, no
+auth provider, no payment processor, no AI API, no server, and no
+middleware. It requires zero environment variables to build, run, or
+deploy. Everything — image storage, the simulated edit, the user session,
+and the "Pro" plan — runs entirely on the visitor's device.
 
 You can confirm this yourself:
 
 ```bash
-grep -r "process.env" app components lib   # → no results
-find . -name ".env*"                       # → no results
-cat package.json                           # → next, react, lucide-react, clsx only
+find . -iname "middleware*" -not -path "*/node_modules/*"   # → no results
+grep -r "process.env" app components lib                    # → no results
+find . -iname ".env*" -not -path "*/node_modules/*"          # → no results
+cat package.json                                             # → next, react, lucide-react, clsx only
 ```
 
 ## Deploying to Vercel (no configuration)
 
 1. Push this folder to a GitHub repo.
 2. Import it in Vercel and click **Deploy**.
-3. Skip the environment variables step entirely — there's nothing to fill
-   in. Vercel will detect the Next.js static export automatically.
+3. Skip the environment variables step — there's nothing to fill in.
 
-That's it. No Supabase project, no Stripe keys, no OpenAI key, no build
-secrets. A `vercel.json` is included to make the static-export build target
-explicit, but Vercel would auto-detect it either way.
+`next.config.js` sets `output: "export"`, so the entire app builds to
+static HTML/JS/CSS with no server functions. `vercel.json` makes that build
+target explicit for Vercel, though it would be auto-detected either way.
 
 You can also skip Vercel entirely: run `npm run build`, and drag the
 resulting `out/` folder into Netlify, Cloudflare Pages, GitHub Pages, or any
@@ -41,17 +41,17 @@ npm run dev
 Open `http://localhost:3000`. On the login page, click **"Skip login, try
 instant demo"** to jump straight into the editor with no typing required.
 
-## How each piece works without a backend
+## How it works
 
 | Feature | Implementation |
 |---|---|
-| Sign in | `lib/local-auth.ts` — a session object written to `localStorage`. Any email works; there's no password check, by design, since there's no server to check it against. |
-| Image upload & storage | `lib/local-store.ts` — images are read as data URLs and saved to the browser's IndexedDB. Nothing is uploaded to a server. |
-| Marker + instruction UI | `components/Canvas.tsx` / `components/InstructionPanel.tsx` — pure client-side React, unchanged from the interaction design. |
-| "AI" image edit | `lib/fake-ai-edit.ts` — draws directly on a `<canvas>` element. It reads keywords in your instruction (leather, wood, remove, logo, a color name) and composites a matching effect at the marker point. A "Simulated edit — demo mode" badge is stamped on every result so this is never mistaken for a real model output. |
+| Sign in | `lib/local-auth.ts` — a session object written to `localStorage`. Any email works; there's no password check, since there's no server to check it against. |
+| Image upload & storage | `lib/local-store.ts` — images are read as data URLs and saved to the browser's IndexedDB. Nothing is uploaded anywhere. |
+| Marker + instruction UI | `components/Canvas.tsx` / `components/InstructionPanel.tsx` — click-to-place-marker interaction, pure client-side React. |
+| Simulated image edit | `lib/fake-ai-edit.ts` — draws directly on a `<canvas>` element. It reads keywords in your instruction (leather, wood, remove, logo, a color name) and composites a matching effect at the marker point. A "Simulated edit — demo mode" badge is stamped on every result so this is never mistaken for a real generated output. |
 | "Pro" plan | `app/pricing/page.tsx` — clicking "Upgrade" flips a `plan` field in the same local session object. No checkout, no card, no charge. |
-| Route protection | `components/AuthGuard.tsx` — checks the local session client-side and redirects to `/login` if it's missing, replacing what a server-side auth middleware would normally do. |
-| Sample images | `lib/demo-data.ts` — a few starter images are drawn procedurally with `<canvas>` so there's something to click on immediately, with no image fetched from anywhere. |
+| Route protection | `components/AuthGuard.tsx` — a client component that checks the local session and redirects to `/login` if it's missing. |
+| Sample images | `lib/demo-data.ts` — a few starter images are drawn procedurally with `<canvas>` so there's something to click on immediately. |
 
 ## Limitations of a browser-only demo
 
@@ -59,25 +59,12 @@ instant demo"** to jump straight into the editor with no typing required.
   the app in a different browser, starts fresh. There's a "reset demo data"
   button in the navbar for this.
 - **There are no real accounts.** Anyone can "log in" as any email with no
-  password — that's intentional for a zero-backend demo, not a bug.
-- **The AI edit is simulated**, not generated by a model. See the table
+  password — that's intentional for a self-contained demo, not a bug.
+- **The image edit is simulated**, not generated by a model. See the table
   above for exactly what it does.
 - **Storage quota.** IndexedDB typically allows well over the ~5–10MB
   `localStorage` limit, but very large or very many images can still hit
   browser-specific caps.
-
-## If you ever want to add a real backend (optional)
-
-Nothing here needs to change to keep the demo working. If you later want
-real accounts, persistent multi-device storage, billing, or a real AI
-model, each stand-in is isolated in its own file so it's a contained swap:
-
-- `lib/local-auth.ts` → a real auth provider
-- `lib/local-store.ts` → real object storage + a database
-- `lib/fake-ai-edit.ts` → a real image-editing model call (this would also
-  mean reintroducing a server route, since a real API key can't live in
-  client-side code)
-- `lib/demo-data.ts` is demo-only and can simply be deleted
 
 ## Project structure
 
@@ -95,9 +82,9 @@ components/
   UploadZone.tsx             Drag-and-drop upload + generated sample images
   Navbar.tsx                 Shared app header
 lib/
-  local-auth.ts             localStorage-based fake session
+  local-auth.ts             localStorage-based demo session
   local-store.ts            IndexedDB wrapper for image persistence
-  fake-ai-edit.ts           Canvas-based simulated "AI" edit
+  fake-ai-edit.ts           Canvas-based simulated image edit
   demo-data.ts               Procedurally generated sample images
 next.config.js              output: "export" — static build, no server
 vercel.json                 Explicit static build target for Vercel

@@ -1,7 +1,7 @@
 "use client";
 
-// Stands in for the OpenAI / external image-editing model. Everything runs
-// on a <canvas> in the visitor's browser: no network request, no API key.
+// Simulates an AI image-editing call. Everything runs on a <canvas> in the
+// visitor's browser: no network request, no API key, no external service.
 // It picks a stylized visual effect based on keywords in the instruction
 // and composites it at the marker point, so the point → instruction → edit
 // loop is fully demonstrable offline.

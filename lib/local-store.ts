@@ -1,8 +1,8 @@
 "use client";
 
-// Minimal promise-based IndexedDB wrapper. This replaces Supabase Storage +
-// Postgres for image persistence — everything lives in the visitor's own
-// browser, scoped to this site's origin, with no network calls involved.
+// Minimal promise-based IndexedDB wrapper. This is the only persistence
+// layer in the app — everything lives in the visitor's own browser, scoped
+// to this site's origin, with no network calls involved.
 
 export type StoredImage = {
   id: string;
