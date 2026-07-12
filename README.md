@@ -66,6 +66,68 @@ instant demo"** to jump straight into the editor with no typing required.
   `localStorage` limit, but very large or very many images can still hit
   browser-specific caps.
 
+## Troubleshooting: "Module not found: Can't resolve '@supabase/ssr'"
+
+This project does not import `@supabase/ssr` anywhere — you can confirm
+that with:
+
+```bash
+grep -r "supabase" . --exclude-dir=node_modules --exclude-dir=.next
+# → no output
+```
+
+If Vercel still reports this error, it means the deployed repo has files
+left over from a different (non-demo) version of this project mixed in
+alongside these ones — most commonly `lib/supabase/client.ts`,
+`lib/supabase/server.ts`, `middleware.ts`, or an `app/api/` directory that
+imports `@supabase/ssr`, a package this `package.json` never lists.
+
+This happens when a new build is extracted **into** a folder that already
+contains an older project, rather than **replacing** it. To fix it:
+
+1. Delete everything in the target repo/folder.
+2. Extract this ZIP's contents into the now-empty folder.
+3. Confirm the file list below matches exactly — there should be no
+   `middleware.ts`, no `app/api/`, and no `lib/supabase/` directory.
+4. Commit and push.
+5. In Vercel, redeploy with **build cache cleared** (Deployments → the
+   three-dot menu on the latest deployment → Redeploy → uncheck "Use
+   existing Build Cache"), since a stale cache can otherwise resurface
+   files from a previous commit.
+
+Expected file list — if your repo has anything beyond this, that's the
+source of the error:
+
+```
+.gitignore
+README.md
+app/(auth)/layout.tsx
+app/(auth)/login/page.tsx
+app/(auth)/signup/page.tsx
+app/dashboard/page.tsx
+app/editor/page.tsx
+app/globals.css
+app/layout.tsx
+app/page.tsx
+app/pricing/page.tsx
+components/AuthGuard.tsx
+components/Canvas.tsx
+components/InstructionPanel.tsx
+components/Navbar.tsx
+components/UploadZone.tsx
+lib/demo-data.ts
+lib/fake-ai-edit.ts
+lib/local-auth.ts
+lib/local-store.ts
+lib/utils.ts
+next.config.js
+package.json
+postcss.config.js
+tailwind.config.js
+tsconfig.json
+vercel.json
+```
+
 ## Project structure
 
 ```
