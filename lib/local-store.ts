@@ -13,7 +13,7 @@ export type StoredImage = {
   createdAt: number;
 };
 
-const DB_NAME = "project-atlas-demo";
+const DB_NAME = "eleven-even-studio";
 const DB_VERSION = 1;
 const STORE = "images";
 
