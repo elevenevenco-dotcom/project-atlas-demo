@@ -28,10 +28,10 @@ export default function Navbar({ user }: { user: LocalUser }) {
           <MapPin size={14} strokeWidth={2.5} />
         </div>
         <span className="font-display font-semibold text-sm tracking-tight">
-          Atlas
+          Eleven Even Studio
         </span>
         <span className="text-[10px] font-mono uppercase tracking-widest text-mist-400 border border-graphite-700 rounded px-1.5 py-0.5 ml-1">
-          Demo
+          AI Editor
         </span>
       </Link>
 
